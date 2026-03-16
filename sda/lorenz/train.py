@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import wandb
 
-from dawgz import job, schedule
 from typing import *
 
 from sda.mcs import *
@@ -10,6 +10,11 @@ from sda.score import *
 from sda.utils import *
 
 from utils import *
+
+
+RUNS_PATH = Path(os.environ.get('SDA_RUNS_PATH', PATH / 'runs'))
+DATA_PATH = Path(os.environ.get('SDA_DATA_PATH', PATH / 'data'))
+RUNS_PATH.mkdir(parents=True, exist_ok=True)
 
 
 GLOBAL_CONFIG = {
@@ -44,10 +49,9 @@ LOCAL_CONFIG = {
 }
 
 
-@job(array=3, cpus=4, gpus=1, ram='8GB', time='06:00:00')
 def train_global(i: int):
     run = wandb.init(project='sda-lorenz', group='global', config=GLOBAL_CONFIG)
-    runpath = PATH / f'runs/{run.name}_{run.id}'
+    runpath = RUNS_PATH / f'{run.name}_{run.id}'
     runpath.mkdir(parents=True, exist_ok=True)
 
     save_config(GLOBAL_CONFIG, runpath)
@@ -57,8 +61,8 @@ def train_global(i: int):
     sde = VPSDE(score, shape=(32, 3)).cuda()
 
     # Data
-    trainset = TrajectoryDataset(PATH / 'data/train.h5', window=32)
-    validset = TrajectoryDataset(PATH / 'data/valid.h5', window=32)
+    trainset = TrajectoryDataset(DATA_PATH / 'train.h5', window=32)
+    validset = TrajectoryDataset(DATA_PATH / 'valid.h5', window=32)
 
     # Training
     generator = loop(
@@ -94,10 +98,9 @@ def train_global(i: int):
     run.finish()
 
 
-@job(array=3, cpus=4, gpus=1, ram='8GB', time='06:00:00')
 def train_local(i: int):
     run = wandb.init(project='sda-lorenz', group='local', config=LOCAL_CONFIG)
-    runpath = PATH / f'runs/{run.name}_{run.id}'
+    runpath = RUNS_PATH / f'{run.name}_{run.id}'
     runpath.mkdir(parents=True, exist_ok=True)
 
     save_config(LOCAL_CONFIG, runpath)
@@ -108,8 +111,8 @@ def train_local(i: int):
     sde = VPSDE(score.kernel, shape=(window * 3,)).cuda()
 
     # Data
-    trainset = TrajectoryDataset(PATH / 'data/train.h5', window=window, flatten=True)
-    validset = TrajectoryDataset(PATH / 'data/valid.h5', window=window, flatten=True)
+    trainset = TrajectoryDataset(DATA_PATH / 'train.h5', window=window, flatten=True)
+    validset = TrajectoryDataset(DATA_PATH / 'valid.h5', window=window, flatten=True)
 
     # Training
     generator = loop(
@@ -147,11 +150,10 @@ def train_local(i: int):
 
 
 if __name__ == '__main__':
-    schedule(
-        train_global,
-        train_local,
-        name='Training',
-        backend='slurm',
-        export='ALL',
-        env=['export WANDB_SILENT=true'],
-    )
+    os.environ.setdefault('WANDB_SILENT', 'true')
+
+    for i in range(3):
+        train_global(i)
+
+    for i in range(3):
+        train_local(i)

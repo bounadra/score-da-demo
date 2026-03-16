@@ -11,10 +11,11 @@ dependencies:
   - python=3.9.16
   - pytorch=1.13.1
   - pytorch-cuda=11.7
+  - mkl<2024
   - pip:
     - dawgz==0.4.1
-    - jax==0.4.4
-    - jaxlib==0.4.4
+    - jax==0.4.17
+    - jaxlib==0.4.17
     - matplotlib==3.6.2
     - POT==0.9.0
     - seaborn==0.12.2
