@@ -1,3 +1,12 @@
+# Experiment artifacts
+data/
+outputs/
+*.h5
+*.npy
+*.pth
+*.pt
+*.ckpt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +214,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Generated artifacts
+data/
+outputs/
+*.h5
+*.npy
+*.pth
+*.pt
+*.ckpt
