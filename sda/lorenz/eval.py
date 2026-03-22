@@ -14,10 +14,26 @@ from sda.utils import *
 
 from utils import *
 
+# Set random seeds for reproducibility.
+import random
+import numpy as np
+import torch
+
+SEED = 42
+np.random.seed(SEED)
+random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 
 DATA_PATH = Path(os.environ.get('SDA_DATA_PATH', PATH / 'data'))
 RUNS_PATH = Path(os.environ.get('SDA_RUNS_PATH', PATH / 'runs'))
-RESULTS_PATH = Path(os.environ.get('SDA_RESULTS_PATH', PATH / 'results'))
+RESULTS_PATH = Path(os.environ.get('SDA_RESULTS_PATH', PATH / 'results_eval'))
+OBS_PATH = Path(os.environ.get('SDA_OBS_PATH', PATH / 'obs'))
+
 RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 
 
@@ -79,8 +95,17 @@ def discover_runs() -> List[Tuple[str, bool]]:
 
 
 def observations():
-    if (RESULTS_PATH / 'obs.h5').exists():
+    import random
+    import os
+    obs_file = OBS_PATH / 'obs.h5' if OBS_PATH.is_dir() else OBS_PATH
+    if obs_file.exists():
+        print(f"{obs_file} already exists, skipping creation.")
         return
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
 
     with h5py.File(DATA_PATH / 'test.h5', mode='r') as f:
         x = f['x'][:, :65]
@@ -88,12 +113,19 @@ def observations():
     y_lo = np.random.normal(x[:, ::8, :1], 0.05)
     y_hi = np.random.normal(x[:, :, :1], 0.25)
 
-    with h5py.File(RESULTS_PATH / 'obs.h5', mode='w') as f:
+    with h5py.File(obs_file, mode='w') as f:
         f.create_dataset('lo', data=y_lo)
         f.create_dataset('hi', data=y_hi)
 
 
 def evaluation(i: int, name: str, local: bool, freq: str, completed: Set[Tuple[int, str, str, int]]):
+    SEED = 42
+    np.random.seed(SEED)
+    random.seed(SEED)
+    torch.manual_seed(SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(SEED)
+    
     corrections = (0, 1, 2, 4, 8, 16)
     has_any_model = any((i, name, freq, C) in completed for C in corrections)
 
@@ -105,7 +137,7 @@ def evaluation(i: int, name: str, local: bool, freq: str, completed: Set[Tuple[i
     chain = make_chain()
 
     # Observation
-    with h5py.File(RESULTS_PATH / 'obs.h5', mode='r') as f:
+    with h5py.File(OBS_PATH / 'obs.h5', mode='r') as f:
         y = torch.from_numpy(f[freq][i])
 
     A = lambda x: chain.preprocess(x)[..., :1]
