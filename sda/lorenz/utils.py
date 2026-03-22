@@ -10,13 +10,22 @@ from sda.score import *
 from sda.utils import *
 
 
-if 'SCRATCH' in os.environ:
-    SCRATCH = os.environ['SCRATCH']
-    PATH = Path(SCRATCH) / 'sda/lorenz'
-else:
-    PATH = Path('.')
+def _resolve_base_path() -> Path:
+    scratch = os.environ.get('SCRATCH')
+    if scratch:
+        candidate = Path(scratch) / 'sda/lorenz'
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+        except (PermissionError, FileNotFoundError, OSError):
+            pass
 
-PATH.mkdir(parents=True, exist_ok=True)
+    fallback = Path('.')
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+PATH = _resolve_base_path()
 
 
 def make_chain() -> MarkovChain:
@@ -109,10 +118,14 @@ def posterior(
     sigma: float = 1.0,
     step: int = 1,
     particles: int = 16384,
+    device: Optional[torch.device] = None,
 ) -> Tensor:
     chain = make_chain()
 
-    x = chain.prior((particles,))
+    if device is None:
+        device = y.device
+
+    x = chain.prior((particles,)).to(device)
     x = chain.trajectory(x, length=64, last=True)
 
     def likelihood(y, x):
