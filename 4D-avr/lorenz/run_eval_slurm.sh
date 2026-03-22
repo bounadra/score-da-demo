@@ -6,7 +6,6 @@
 #SBATCH --job-name=4dvar-lorenz-eval
 #SBATCH --output=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_%j.log
 #SBATCH --error=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_%j.err
-#SBATCH --time=48:00:00
 
 set -euo pipefail
 
@@ -19,7 +18,8 @@ unset SLURM_MEM_PER_CPU
 
 # Project paths
 PROJECT_DIR=/Odyssey/private/c23bouna/UE_G/score-da-demo
-RESULTS_4DVAR_DIR="${PROJECT_DIR}/outputs/results_4dvar"
+RESULTS_4DVAR_DIR="${PROJECT_DIR}/4D-avr/lorenz/outputs/results_seed_42"
+OBS_SOURCE_FILE="${PROJECT_DIR}/obs/obs.h5"
 
 # Ensure local source tree is importable in batch jobs.
 export PYTHONPATH="${PROJECT_DIR}/sda:${PROJECT_DIR}:${PYTHONPATH:-}"
@@ -32,11 +32,6 @@ conda activate scoreda
 mkdir -p "${PROJECT_DIR}/logs"
 mkdir -p "${RESULTS_4DVAR_DIR}"
 
-# Fair comparison: reuse the same observations as sda when available
-if [[ -f "${PROJECT_DIR}/outputs/results/obs.h5" && ! -f "${RESULTS_4DVAR_DIR}/obs.h5" ]]; then
-  cp "${PROJECT_DIR}/outputs/results/obs.h5" "${RESULTS_4DVAR_DIR}/obs.h5"
-fi
-
 # Optional clean start for CSVs (uncomment if needed)
 # rm -f "${RESULTS_4DVAR_DIR}/stats_lo.csv" "${RESULTS_4DVAR_DIR}/stats_hi.csv"
 
@@ -45,8 +40,8 @@ CPU_TASKS="${SLURM_CPUS_PER_GPU:-${SLURM_CPUS_PER_TASK:-1}}"
 cd "${PROJECT_DIR}"
 srun --cpus-per-task="${CPU_TASKS}" python 4D-avr/lorenz/eval.py \
   --root "${RESULTS_4DVAR_DIR}" \
+  --obs_file "${OBS_SOURCE_FILE}" \
   --n_obs 64 \
   --n_samples 1024 \
-  --weak_iterations 16 \
   --device cuda \
   --seed 0
