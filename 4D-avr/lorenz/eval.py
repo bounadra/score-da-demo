@@ -34,7 +34,7 @@ torch.backends.cudnn.benchmark = False
 PATH = Path(__file__).parent.resolve()
 PROJECT_ROOT = PATH.parents[1]
 DEFAULT_DATA_FILE = PROJECT_ROOT / "data" / "data" / "test.h5"
-RESULTS_PATH = PATH / "outputs" / "results_seed_42"
+RESULTS_PATH = PATH / "outputs" / "results_seed_42_submit_v2"
 RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 DEFAULT_OBS_FILE = PROJECT_ROOT / "obs" / "obs.h5"
 
@@ -119,7 +119,15 @@ def main():
                 
                 
                 for i in range(len(y_all)):
-                    y = torch.from_numpy(y_all[i]).float().to(device)
+                    # Match SDA evaluation pattern: reseed at each sample index.
+                    np.random.seed(args.seed)
+                    random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    if torch.cuda.is_available():
+                        torch.cuda.manual_seed_all(args.seed)
+
+                    # Keep dataset native dtype (usually float64) for GT parity with SDA.
+                    y = torch.from_numpy(y_all[i]).to(device)
 
                     x_ref, gt_stats = evaluate_reference(
                         y=y,
