@@ -224,3 +224,4 @@ outputs/
 *.pth
 *.pt
 *.ckpt
+obs/
