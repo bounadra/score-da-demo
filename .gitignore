@@ -1,7 +1,6 @@
 # Experiment artifacts
 .dawgz/
 logs/
-data/
 outputs/
 *.h5
 *.npy
