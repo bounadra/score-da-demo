@@ -18,7 +18,7 @@ unset SLURM_MEM_PER_CPU
 
 # Project paths
 PROJECT_DIR=/Odyssey/private/c23bouna/UE_G/score-da-demo
-RESULTS_4DVAR_DIR="${PROJECT_DIR}/4D-avr/lorenz/outputs/results_seed_42"
+RESULTS_4DVAR_DIR="${PROJECT_DIR}/4D-avr/lorenz/outputs/results_seed_42_submit_v2"
 OBS_SOURCE_FILE="${PROJECT_DIR}/obs/obs.h5"
 
 # Ensure local source tree is importable in batch jobs.
@@ -32,10 +32,20 @@ conda activate scoreda
 mkdir -p "${PROJECT_DIR}/logs"
 mkdir -p "${RESULTS_4DVAR_DIR}"
 
-# Optional clean start for CSVs (uncomment if needed)
-# rm -f "${RESULTS_4DVAR_DIR}/stats_lo.csv" "${RESULTS_4DVAR_DIR}/stats_hi.csv"
-
 CPU_TASKS="${SLURM_CPUS_PER_GPU:-${SLURM_CPUS_PER_TASK:-1}}"
+
+JOB_ID="${SLURM_JOB_ID:-manual}"
+STAMP="$(date +%Y%m%d_%H%M%S)"
+mkdir -p "${RESULTS_4DVAR_DIR}/run_meta"
+
+cp "${PROJECT_DIR}/4D-avr/lorenz/eval.py" \
+  "${RESULTS_4DVAR_DIR}/run_meta/eval_${JOB_ID}_${STAMP}.py"
+
+cp "${PROJECT_DIR}/4D-avr/lorenz/solver.py" \
+  "${RESULTS_4DVAR_DIR}/run_meta/solver_${JOB_ID}_${STAMP}.py"
+
+git -C "${PROJECT_DIR}" rev-parse HEAD \
+  > "${RESULTS_4DVAR_DIR}/run_meta/git_commit_${JOB_ID}_${STAMP}.txt"
 
 cd "${PROJECT_DIR}"
 srun --cpus-per-task="${CPU_TASKS}" python 4D-avr/lorenz/eval.py \
@@ -44,4 +54,4 @@ srun --cpus-per-task="${CPU_TASKS}" python 4D-avr/lorenz/eval.py \
   --n_obs 64 \
   --n_samples 1024 \
   --device cuda \
-  --seed 0
+  --seed 42
