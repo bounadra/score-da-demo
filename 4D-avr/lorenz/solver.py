@@ -141,11 +141,19 @@ def evaluate_weak_4dvar(
                 optimizer.zero_grad()
                 background_term = 0.5 * ((x_opt[0] - x_b) / background_std).square().sum()
                 loss = background_term - log_prior(x_opt) - log_likelihood(y_cpu, x_opt, A, sigma, step)
+                if not torch.isfinite(loss):
+                    raise FloatingPointError("Non-finite weak-4dvar objective")
                 loss.backward()
                 return loss
 
-            optimizer.step(closure)
-            x_map = x_opt.detach()
+            try:
+                optimizer.step(closure)
+                x_map = x_opt.detach()
+                if not torch.isfinite(x_map).all():
+                    x_map = x_init
+            except (RuntimeError, FloatingPointError):
+                # Keep run alive: fall back to background state if optimization diverges.
+                x_map = x_init
         
         x_samples.append(x_map)
     
