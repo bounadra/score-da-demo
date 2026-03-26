@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR=/Odyssey/private/c23bouna/UE_G/score-da-demo
-RUN_SCRIPT="${PROJECT_DIR}/4D-avr/lorenz/run_eval_slurm.sh"
+RUN_SCRIPT="${PROJECT_DIR}/4D-var/lorenz/run_eval_slurm.sh"
 ALLOW_SM90="${ALLOW_SM90:-0}"
 
 if [[ "${1:-}" == "--allow-sm90" ]]; then
@@ -11,7 +11,6 @@ fi
 
 choose_gpu() {
   local gpu
-  # Current scoreda PyTorch build supports up to sm_86, so prefer A100 (sm_80).
   for gpu in a100; do
     if sinfo -p Odyssey -h -o '%t %G' | awk -v pat="gpu:${gpu}" '$1 == "idle" && index($0, pat) {found=1} END{exit !found}'; then
       echo "${gpu}"

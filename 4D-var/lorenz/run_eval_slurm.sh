@@ -3,9 +3,9 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=32
 #SBATCH --mem=240G
-#SBATCH --job-name=4dvar-lorenz-eval
-#SBATCH --output=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_%j.log
-#SBATCH --error=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_%j.err
+#SBATCH --job-name=10_iter_bs_0_1_4dvar-lorenz-eval_
+#SBATCH --output=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_10_bs_0_1_%j.log
+#SBATCH --error=/Odyssey/private/c23bouna/UE_G/score-da-demo/logs/4dvar_eval_10_bs_0_1_%j.err
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ unset SLURM_MEM_PER_CPU
 
 # Project paths
 PROJECT_DIR=/Odyssey/private/c23bouna/UE_G/score-da-demo
-RESULTS_4DVAR_DIR="${PROJECT_DIR}/4D-avr/lorenz/outputs/results_seed_42_submit_v2"
+RESULTS_4DVAR_DIR="${PROJECT_DIR}/4D-var/lorenz/outputs/results_seed_42_iter_10_bs_0_1"
 OBS_SOURCE_FILE="${PROJECT_DIR}/obs/obs.h5"
 
 # Ensure local source tree is importable in batch jobs.
@@ -38,20 +38,22 @@ JOB_ID="${SLURM_JOB_ID:-manual}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 mkdir -p "${RESULTS_4DVAR_DIR}/run_meta"
 
-cp "${PROJECT_DIR}/4D-avr/lorenz/eval.py" \
+cp "${PROJECT_DIR}/4D-var/lorenz/eval.py" \
   "${RESULTS_4DVAR_DIR}/run_meta/eval_${JOB_ID}_${STAMP}.py"
 
-cp "${PROJECT_DIR}/4D-avr/lorenz/solver.py" \
+cp "${PROJECT_DIR}/4D-var/lorenz/solver.py" \
   "${RESULTS_4DVAR_DIR}/run_meta/solver_${JOB_ID}_${STAMP}.py"
 
 git -C "${PROJECT_DIR}" rev-parse HEAD \
   > "${RESULTS_4DVAR_DIR}/run_meta/git_commit_${JOB_ID}_${STAMP}.txt"
 
 cd "${PROJECT_DIR}"
-srun --cpus-per-task="${CPU_TASKS}" python 4D-avr/lorenz/eval.py \
+srun --cpus-per-task="${CPU_TASKS}" python 4D-var/lorenz/eval.py \
   --root "${RESULTS_4DVAR_DIR}" \
   --obs_file "${OBS_SOURCE_FILE}" \
   --n_obs 64 \
   --n_samples 1024 \
   --device cuda \
-  --seed 42
+  --seed 42 \
+  --maxiter 10 \
+  --background_std 0.1 \

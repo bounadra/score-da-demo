@@ -31,7 +31,7 @@ torch.backends.cudnn.benchmark = False
 
 DATA_PATH = Path(os.environ.get('SDA_DATA_PATH', PATH / 'data'))
 RUNS_PATH = Path(os.environ.get('SDA_RUNS_PATH', PATH / 'runs'))
-RESULTS_PATH = Path(os.environ.get('SDA_RESULTS_PATH', PATH / 'results_eval'))
+RESULTS_PATH = Path(os.environ.get('SDA_RESULTS_PATH', PATH / 'results_eval_accelerated_64_step_C_diff_2'))
 OBS_PATH = Path(os.environ.get('SDA_OBS_PATH', PATH / 'obs'))
 
 RESULTS_PATH.mkdir(parents=True, exist_ok=True)
@@ -74,6 +74,8 @@ def discover_runs() -> List[Tuple[str, bool]]:
     if not RUNS_PATH.exists():
         return runs
 
+    # Collect all runs first
+    all_run_dirs = {}
     for run_dir in sorted(RUNS_PATH.iterdir()):
         if not run_dir.is_dir():
             continue
@@ -89,7 +91,26 @@ def discover_runs() -> List[Tuple[str, bool]]:
 
         # Local models have a "window" parameter in saved config.
         local = 'window' in config
-        runs.append((run_dir.name, local))
+        all_run_dirs[run_dir.name] = local
+
+    # Custom order by run names
+    custom_order = [
+        'dummy-24qhkmqq_24qhkmqq',
+        'dummy-aipkkdnl_aipkkdnl',
+        'dummy-50hcas6u_50hcas6u',
+        'dummy-celnvmn1_celnvmn1',
+        'dummy-ycnhw3lr_ycnhw3lr',
+        'dummy-uk32q4hm_uk32q4hm',
+    ]
+    
+    for run_name in custom_order:
+        if run_name in all_run_dirs:
+            runs.append((run_name, all_run_dirs[run_name]))
+    
+    # Add any remaining runs not in custom order
+    for run_name in sorted(all_run_dirs.keys()):
+        if run_name not in custom_order:
+            runs.append((run_name, all_run_dirs[run_name]))
 
     return runs
 
@@ -126,7 +147,8 @@ def evaluation(i: int, name: str, local: bool, freq: str, completed: Set[Tuple[i
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(SEED)
     
-    corrections = (0, 1, 2, 4, 8, 16)
+    corrections = (0, 1, 4, 8)
+    # corrections = (2,)
     has_any_model = any((i, name, freq, C) in completed for C in corrections)
 
     # Skip fully completed evaluations early.
@@ -148,8 +170,12 @@ def evaluation(i: int, name: str, local: bool, freq: str, completed: Set[Tuple[i
         sigma, step = 0.25, 1
 
     # Ground truth particles are always needed for w1.
-    x = posterior(y, A=A, sigma=sigma, step=step)[:1024]
-    x_ = posterior(y, A=A, sigma=sigma, step=step)[:1024]
+    # x = posterior(y, A=A, sigma=sigma, step=step)[:1024]
+    # x_ = posterior(y, A=A, sigma=sigma, step=step)[:1024]
+
+    _gt = posterior(y, A=A, sigma=sigma, step=step, particles=2048)
+    x  = _gt[:1024]
+    x_ = _gt[1024:]
 
     # Preserve historical layout: one GT row at the start of each run block.
     # If this block already has model rows, it is a resume and GT is not rewritten.
@@ -183,8 +209,14 @@ def evaluation(i: int, name: str, local: bool, freq: str, completed: Set[Tuple[i
         if (i, name, freq, C) in completed:
             print(f'{C:02d}: (skipped, already computed)', flush=True)
             continue
+        
+        
+        # x = sde.sample((1024,), steps=32, corrections=C, tau=0.25).cpu()
+        x = sde.sample((1024,), steps=64, corrections=C, tau=0.25).cpu()
+        # x = sde.sample((1024,), steps=128, corrections=C, tau=0.25).cpu()
+        # x = sde.sample((1024,), steps=256, corrections=C, tau=0.25).cpu()
 
-        x = sde.sample((1024,), steps=256, corrections=C, tau=0.25).cpu()
+
         x = chain.postprocess(x)
 
         log_px = log_prior(x).mean().item()

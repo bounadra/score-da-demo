@@ -34,7 +34,7 @@ torch.backends.cudnn.benchmark = False
 PATH = Path(__file__).parent.resolve()
 PROJECT_ROOT = PATH.parents[1]
 DEFAULT_DATA_FILE = PROJECT_ROOT / "data" / "data" / "test.h5"
-RESULTS_PATH = PATH / "outputs" / "results_seed_42_submit_v2"
+RESULTS_PATH = PATH / "outputs" / "results_seed_42_iter_10_bs_0_1"
 RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 DEFAULT_OBS_FILE = PROJECT_ROOT / "obs" / "obs.h5"
 

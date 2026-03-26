@@ -41,7 +41,6 @@ except ModuleNotFoundError:
 
 from config import SCENARIOS
 
-
 def freq_to_params(freq: str) -> Tuple[float, int]:
     """Map frequency string to observation params."""
     cfg = SCENARIOS.get(freq)
@@ -152,7 +151,6 @@ def evaluate_weak_4dvar(
                 if not torch.isfinite(x_map).all():
                     x_map = x_init
             except (RuntimeError, FloatingPointError):
-                # Keep run alive: fall back to background state if optimization diverges.
                 x_map = x_init
         
         x_samples.append(x_map)
