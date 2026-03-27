@@ -2,8 +2,6 @@
 
 Demonstration and evaluation of Score-Based Data Assimilation (SDA) vs classical 4D-Var on the Lorenz system.
 
-This is an implementation of [Score-based Data Assimilation](https://arxiv.org/abs/2306.10574) by Rozet & Louppe (2023), with a comparative baseline using 4D-Variational methods.
-
 ## What's in here
 
 **SDA approach**: Uses diffusion models to learn score functions over trajectory segments. At inference time, we generate trajectories conditioned on sparse noisy observations. The neat thing is the observation model is decoupled from training, so you can do zero-shot inference on different observation scenarios.
@@ -25,9 +23,7 @@ pip install git+https://github.com/google/jax-cfd
 wandb login
 ```
 
-Requires CUDA 11.7, Python 3.9+, and a Slurm cluster if you want to run the evaluation jobs.
-
-## running things
+## running scripts
 
 **Generate data** (Lorenz trajectories):
 ```bash
@@ -40,7 +36,7 @@ Creates `data/{train,valid,test}.h5` (80/10/10 split).
 ```bash
 python train.py
 ```
-Saves checkpoints to `runs/`. Logs to W&B under project `sda-lorenz`.
+Saves checkpoints to `runs/`. 
 
 **Evaluate SDA**:
 ```bash
@@ -64,7 +60,7 @@ sbatch ../../../4D-var/lorenz/submit_eval_slurm.sh
 
 - `sda/` – main package with score networks, Markov chains, utilities
 - `sda/lorenz/` – experiments on Lorenz: training and evaluation code
-- `4D-var/lorenz/` – 4D-Var solver (baseline)
+- `4D-var/lorenz/` – 4D-Var solver 
 - `data/` – training/test trajectories (HDF5)
 - `outputs/` – results and trained model checkpoints
 - `trajectories/` – analysis scripts
@@ -76,17 +72,9 @@ sbatch ../../../4D-var/lorenz/submit_eval_slurm.sh
 - `ScoreUNet`: U-Net variant for spatial data
 - `TimeEmbedding`: Fourier features for continuous time
 
-**Training**: Denoising score matching on trajectory windows (default 5 steps). Losses tracked with W&B.
+**Training**: Denoising score matching on trajectory windows (default 5 steps).
 
 **Inference**: Reverse SDE sampling, conditioned on observations via Langevin dynamics.
-
-## dependencies
-
-Core: PyTorch (1.13.1), JAX (0.4.17), JAX-CFD, POT, Zuko
-
-HPC/tracking: DAWGZ (job scheduling), W&B (experiment logging)
-
-See `sda/environment.yml` for full list.
 
 ## env vars
 
@@ -95,12 +83,5 @@ See `sda/environment.yml` for full list.
 - `SDA_RESULTS_PATH`: output results dir (default: `./results_eval/`)
 - `SDA_OBS_PATH`: observation data (default: `./obs/`)
 
-## references
-
+## reference
 - Rozet & Louppe (2023): [Score-based Data Assimilation](https://arxiv.org/abs/2306.10574)
-- Song et al.: Diffusion models and score-based generative modeling
-- Evensen: Ensemble and variational data assimilation
-
-## license
-
-Based on implementation by [François Rozet](https://github.com/francois-rozet) and [Gilles Louppe](https://github.com/glouppe).
