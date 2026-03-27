@@ -2,8 +2,6 @@
 
 Demonstration and evaluation of Score-Based Data Assimilation (SDA) vs classical 4D-Var on the Lorenz system.
 
-## What's in here
-
 **SDA approach**: Uses diffusion models to learn score functions over trajectory segments. At inference time, we generate trajectories conditioned on sparse noisy observations. The neat thing is the observation model is decoupled from training, so you can do zero-shot inference on different observation scenarios.
 
 **4D-Var baseline**: Standard variational approach—minimize a cost function balancing model constraints and observation fit.
